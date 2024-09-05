@@ -9,3 +9,4 @@ It works as follows -
 6. Execute the SQL query in the DB and fetch the results (query_executor.py)
 7. Send the user prompt and the SQL query results to an LLM and ask to generate a user-friendly response (generate_response.py)
 8. Return the user-friendly response to the user (generate_response.py)
+--END--
