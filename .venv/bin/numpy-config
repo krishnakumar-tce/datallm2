@@ -1,4 +1,4 @@
-#!/Users/champakrishna/Desktop/anthropic/datallm/.venv/bin/python
+#!/Users/champakrishna/Desktop/anthropic/datallm2/.venv/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys
