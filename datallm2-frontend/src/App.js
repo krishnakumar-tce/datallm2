@@ -1,69 +1,41 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import axios from 'axios';
+import DOMPurify from 'dompurify';
+import { 
+  ThemeProvider, createTheme, 
+  CssBaseline, AppBar, Toolbar, Typography, 
+  Container, Paper, TextField, Button, 
+  List, ListItem, ListItemText, ListItemAvatar, 
+  Avatar, CircularProgress
+} from '@mui/material';
+import { Send as SendIcon, Person as PersonIcon } from '@mui/icons-material';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 
-const AppContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  padding: 20px;
-`;
-
-const ChatContainer = styled.div`
-  flex-grow: 1;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 20px;
-  margin-bottom: 20px;
-`;
-
-const MessageContainer = styled.div`
-  margin-bottom: 10px;
-`;
-
-const UserMessage = styled.p`
-  background-color: #e6f2ff;
-  padding: 10px;
-  border-radius: 4px;
-`;
-
-const BotMessage = styled.p`
-  background-color: #f0f0f0;
-  padding: 10px;
-  border-radius: 4px;
-`;
-
-const InputContainer = styled.form`
-  display: flex;
-`;
-
-const Input = styled.input`
-  flex-grow: 1;
-  padding: 10px;
-  font-size: 16px;
-`;
-
-const Button = styled.button`
-  padding: 10px 20px;
-  font-size: 16px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  cursor: pointer;
-`;
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
+});
 
 function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
-  
+    if (!input.trim() || isLoading) return;
+
     const userMessage = input;
     setMessages(prev => [...prev, { type: 'user', content: userMessage }]);
     setInput('');
-  
+    setIsLoading(true);
+
     try {
       const response = await axios.post('http://127.0.0.1:5000/query', 
         { query: userMessage },
@@ -76,36 +48,81 @@ function App() {
       );
       setMessages(prev => [
         ...prev, 
-        { type: 'bot', content: `Raw Result: ${response.data.result}` },
-        { type: 'bot', content: `Friendly Response: ${response.data.friendlyResponse}` }
+        { type: 'bot', content: response.data.friendlyResponse }
       ]);
     } catch (error) {
       console.error('Error:', error);
       setMessages(prev => [...prev, { type: 'bot', content: 'Sorry, an error occurred.' }]);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const createMarkup = (html) => {
+    return {__html: DOMPurify.sanitize(html)};
+  }
+
   return (
-    <AppContainer>
-      <ChatContainer>
-        {messages.map((message, index) => (
-          <MessageContainer key={index}>
-            {message.type === 'user' ? (
-              <UserMessage>{message.content}</UserMessage>
-            ) : (
-              <BotMessage>{message.content}</BotMessage>
-            )}
-          </MessageContainer>
-        ))}
-      </ChatContainer>
-      <InputContainer onSubmit={handleSubmit}>
-        <Input 
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your query here..."
-        />
-        <Button type="submit">Send</Button>
-      </InputContainer>
-    </AppContainer>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6">
+            Enterprise Data Assistant
+          </Typography>
+        </Toolbar>
+      </AppBar>
+      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+        <Paper elevation={3} sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 140px)' }}>
+          <List sx={{ flexGrow: 1, overflow: 'auto', mb: 2 }}>
+            {messages.map((message, index) => (
+              <ListItem key={index} alignItems="flex-start" sx={{ flexDirection: message.type === 'user' ? 'row-reverse' : 'row' }}>
+                <ListItemAvatar>
+                  <Avatar sx={{ bgcolor: message.type === 'user' ? 'primary.main' : 'secondary.main' }}>
+                    {message.type === 'user' ? <PersonIcon /> : <SmartToyIcon />}
+                  </Avatar>
+                </ListItemAvatar>
+                <Paper 
+                  elevation={1} 
+                  sx={{ 
+                    p: 2, 
+                    maxWidth: '70%', 
+                    bgcolor: message.type === 'user' ? 'primary.light' : 'secondary.light',
+                    color: message.type === 'user' ? 'primary.contrastText' : 'secondary.contrastText'
+                  }}
+                >
+                  {message.type === 'user' ? (
+                    <ListItemText primary={message.content} />
+                  ) : (
+                    <div dangerouslySetInnerHTML={createMarkup(message.content)} />
+                  )}
+                </Paper>
+              </ListItem>
+            ))}
+          </List>
+          <form onSubmit={handleSubmit} style={{ display: 'flex' }}>
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type your query here..."
+              disabled={isLoading}
+            />
+            <Button 
+              type="submit" 
+              variant="contained" 
+              color="primary" 
+              endIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
+              disabled={isLoading}
+              sx={{ ml: 1 }}
+            >
+              Send
+            </Button>
+          </form>
+        </Paper>
+      </Container>
+    </ThemeProvider>
   );
 }
 

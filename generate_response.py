@@ -1,6 +1,7 @@
 from openai import OpenAI
 import os
 from query_executor import QueryExecutor
+import json  # Importing json to format the output as JSON
 
 # Initialize OpenAI API client
 api_key = os.getenv("OPENAI_API_KEY")
@@ -15,28 +16,38 @@ def generate_user_friendly_response(query_result, user_input):
     {query_result}
 
     Please provide a user-friendly response based on the query result.
+    When appropriate, use HTML formatting for better readability.
+    You can use <ul>, <ol>, <li> for lists, <table>, <tr>, <th>, <td> for tables,
+    and other HTML tags as needed. Wrap the entire response in a <div> tag.
+    Do not include anything else in the response other than the HTML itself.
+    Do not enclose the HTML is any kind of quotes or anything like that.
     """
 
     try:
-        # Send request to OpenAI's Chat API
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # You can use "gpt-4" if needed
-            messages=[
+        # Print the full JSON request
+        request_payload = {
+            "model": "gpt-3.5-turbo",  # You can use "gpt-4" if needed
+            "messages": [
                 {"role": "system", "content": "You are a helpful assistant with expertise in summarizing database query results."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=150,
-            temperature=0.7,
-        )
+            "max_tokens": 2000,
+            "temperature": 0.7,
+        }
+        print("JSON Request:")
+        print(json.dumps(request_payload, indent=4))  # Print JSON request in a formatted way
+        print("\n\n")
 
-        # Print the entire response object for debugging
-        #print("API Response:")
-        #print(response)
+        # Send request to OpenAI's Chat API
+        response = client.chat.completions.create(**request_payload)
+
+        # Print the full JSON response
+        print("JSON Response:")
+        print(json.dumps(response.to_dict(), indent=4))  # Convert response to a dictionary and print it as JSON
+        print("\n\n")
 
         # Access and print the content from the response for debugging
         if hasattr(response, 'choices') and len(response.choices) > 0:
-            print("Response Choices:")
-            print(response.choices)
             message_content = response.choices[0].message.content  # Adjusted to access the content
             return message_content.strip()
         else:

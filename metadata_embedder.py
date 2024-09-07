@@ -59,9 +59,9 @@ def main():
     for table, info in metadata.items():
         print(f"\n{info}")
 
-    print("\nGenerated Embeddings:")
-    for table, embedding in embeddings.items():
-        print(f"{table}: Length {len(embedding)}")
+    #print("\nGenerated Embeddings:")
+    #for table, embedding in embeddings.items():
+    #    print(f"{table}: Length {len(embedding)}")
 
 if __name__ == "__main__":
     main()
