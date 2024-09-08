@@ -6,9 +6,9 @@ import {
   CssBaseline, AppBar, Toolbar, Typography, 
   Container, Paper, TextField, Button, 
   List, ListItem, ListItemText, ListItemAvatar, 
-  Avatar, CircularProgress
+  Avatar, CircularProgress, Accordion, AccordionSummary, AccordionDetails
 } from '@mui/material';
-import { Send as SendIcon, Person as PersonIcon } from '@mui/icons-material';
+import { Send as SendIcon, Person as PersonIcon, ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 
 const theme = createTheme({
@@ -48,6 +48,7 @@ function App() {
       );
       setMessages(prev => [
         ...prev, 
+        { type: 'bot', content: response.data.steps, isSteps: true },
         { type: 'bot', content: response.data.friendlyResponse }
       ]);
     } catch (error) {
@@ -61,6 +62,34 @@ function App() {
   const createMarkup = (html) => {
     return {__html: DOMPurify.sanitize(html)};
   }
+
+  const renderSteps = (steps) => (
+    <Accordion>
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Typography>Query Process Steps</Typography>
+      </AccordionSummary>
+      <AccordionDetails>
+        <Typography variant="h6">1. Relevant Tables</Typography>
+        <Typography>{steps.relevant_tables.join(', ')}</Typography>
+
+        <Typography variant="h6">2. Query Intent</Typography>
+        <Typography>{steps.query_intent}</Typography>
+
+        <Typography variant="h6">3. Generated SQL</Typography>
+        <pre>{steps.generated_sql}</pre>
+
+        <Typography variant="h6">4. SQL Validation</Typography>
+        <Typography>{steps.sql_validated ? 'Successful' : 'Failed'}</Typography>
+
+        <Typography variant="h6">5. Query Result</Typography>
+        {steps.error ? (
+          <Typography color="error">{steps.error}</Typography>
+        ) : (
+          <pre>{JSON.stringify(steps.query_result, null, 2)}</pre>
+        )}
+      </AccordionDetails>
+    </Accordion>
+  );
 
   return (
     <ThemeProvider theme={theme}>
@@ -93,6 +122,8 @@ function App() {
                 >
                   {message.type === 'user' ? (
                     <ListItemText primary={message.content} />
+                  ) : message.isSteps ? (
+                    renderSteps(message.content)
                   ) : (
                     <div dangerouslySetInnerHTML={createMarkup(message.content)} />
                   )}

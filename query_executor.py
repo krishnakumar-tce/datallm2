@@ -8,29 +8,45 @@ class QueryExecutor:
         self.sql_generator = SQLGenerator(db_file, embeddings_file)
 
     def execute_query(self, natural_language_query):
+        result = {
+            "query": natural_language_query,
+            "relevant_tables": [],
+            "query_intent": "",
+            "generated_sql": "",
+            "sql_validated": False,
+            "query_result": None,
+            "error": None
+        }
+
         try:
-            # Generate SQL query
-            sql_query = self.sql_generator.generate_sql(natural_language_query)
+            # Generate SQL query and get intermediate steps
+            sql_generation_result = self.sql_generator.generate_sql(natural_language_query)
+            result.update(sql_generation_result)
+
             print("Generated SQL Query:")
-            print(sql_query)
-            print("\nExecuting query...")
+            print(result["generated_sql"])
 
-            # Execute SQL query
-            result = self.db_manager.execute_query(sql_query)
+            if result["sql_validated"]:
+                print("\nExecuting query...")
+                # Execute SQL query
+                query_result = self.db_manager.execute_query(result["generated_sql"])
+                result["query_result"] = self.format_results(query_result)
+            else:
+                result["error"] = "SQL validation failed. Query not executed."
 
-            # Format and return results
-            return self.format_results(result)
         except Exception as e:
-            return f"An error occurred: {str(e)}"
+            result["error"] = f"An error occurred: {str(e)}"
 
-    def format_results(self, result):
-        if isinstance(result, pd.DataFrame):
-            if result.empty:
+        return result
+
+    def format_results(self, query_result):
+        if isinstance(query_result, pd.DataFrame):
+            if query_result.empty:
                 return "The query returned no results."
             else:
-                return result.to_string(index=False)
+                return query_result.to_dict(orient='records')
         else:
-            return str(result)
+            return str(query_result)
 
 def main():
     executor = QueryExecutor("database.db", "embeddings.json")
@@ -42,7 +58,15 @@ def main():
         
         result = executor.execute_query(query)
         print("\nResult:")
-        print(result)
+        print("1. Relevant Tables:", ", ".join(result["relevant_tables"]))
+        print("2. Query Intent:", result["query_intent"])
+        print("3. Generated SQL:", result["generated_sql"])
+        print("4. SQL Validated:", "Yes" if result["sql_validated"] else "No")
+        print("5. Query Result:")
+        if result["error"]:
+            print("   Error:", result["error"])
+        else:
+            print("   ", result["query_result"])
 
 if __name__ == "__main__":
     main()

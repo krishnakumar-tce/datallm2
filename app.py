@@ -15,6 +15,7 @@ def after_request(response):
     return response
 
 executor = QueryExecutor("database.db", "embeddings.json")
+
 @app.route('/query', methods=['POST', 'OPTIONS'])
 def handle_query():
     if request.method == "OPTIONS":
@@ -23,15 +24,22 @@ def handle_query():
     data = request.json
     user_query = data['query']
     
-    # Execute the query
+    # Execute the query and get the result with all steps
     query_result = executor.execute_query(user_query)
     
     # Generate a user-friendly response
-    friendly_response = generate_user_friendly_response(query_result, user_query)
+    friendly_response = generate_user_friendly_response(user_query, query_result['query_result'])
     
     return jsonify({
         'query': user_query,
-        'result': query_result,
+        'steps': {
+            'relevant_tables': query_result['relevant_tables'],
+            'query_intent': query_result['query_intent'],
+            'generated_sql': query_result['generated_sql'],
+            'sql_validated': query_result['sql_validated'],
+            'query_result': query_result['query_result'],
+            'error': query_result.get('error')
+        },
         'friendlyResponse': friendly_response
     })
 
